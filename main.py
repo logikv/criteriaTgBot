@@ -4,7 +4,7 @@ import time
 
 def run_crawler():
     from subprocess import check_output
-    check_output("python ozon/crawl/crawler.py", shell=True).decode()
+    check_output("python ozon/hunter/crawler.py", shell=True).decode()
 
 
 def run_tgbot():

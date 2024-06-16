@@ -2,7 +2,8 @@ import sqlite3
 
 import telebot
 
-from ozon.crawl.items import OzonItem
+from ozon.hunter.items import OzonItem
+from ozon.hunter.settings import found_by_start_link
 
 
 class StoreInDatabasePipeline:
@@ -60,12 +61,16 @@ class NotificationPipeline():
         self.bot = telebot.TeleBot("6788334491:AAEgFkwX-2BgwBA1cOOltrI1prRcP0iNeso")
 
     def process_item(self, item, spider):
-        if type(item) is OzonItem and int(item['price']) <= 600:
-            spider.logger.info("found an item for good price")
-            msg_str = f"""
-            Товар: {item['name']}
-            Ссылка: https://www.ozon.ru{item['link']}
-            Цена: {item['price']}
-            """
-            self.bot.send_message(chat_id="181553450", text=msg_str)
+        settings = spider.custom_settings['settings']
+        if type(item) is OzonItem:
+            setting = found_by_start_link(settings, item['start_url'])
+            if int(item['price']) <= int(setting['price']):
+                spider.logger.info("found an item for good price")
+                msg_str = f"""
+                Товар: {item['name']}
+                Ссылка: https://www.ozon.ru{item['link']}
+                Цена: {item['price']}
+                Поиск по: {setting['name']}
+                """
+                self.bot.send_message(chat_id="181553450", text=msg_str)
         return item

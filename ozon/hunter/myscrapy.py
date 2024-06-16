@@ -1,7 +1,7 @@
 import scrapy
 import json
 
-from ozon.crawl.items import OzonItem
+from ozon.hunter.items import OzonItem
 
 
 def sanitize(string):

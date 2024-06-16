@@ -1,7 +1,8 @@
 from scrapy.crawler import CrawlerProcess
 
-from ozon.crawl.myscrapy import OzonApiItemsSpider
-from ozon.crawl.pipelines import StoreInDatabasePipeline, NotificationPipeline
+from ozon.hunter.myscrapy import OzonApiItemsSpider
+from ozon.hunter.pipelines import StoreInDatabasePipeline, NotificationPipeline
+from ozon.hunter.settings import settings
 
 process = CrawlerProcess(settings={
     "ITEM_PIPELINES": {
@@ -17,6 +18,8 @@ def start_process():
 
 
 def construct_process():
+
+
     global process
     process = CrawlerProcess(settings={
         "ITEM_PIPELINES": {
@@ -24,10 +27,13 @@ def construct_process():
             NotificationPipeline: 300
         }
     })
-    OzonApiItemsSpider.start_urls = [
-        'https://api.ozon.ru/composer-api.bx/page/json/v2?url=https://www.ozon.ru/category/produkty-pitaniya-9200/?text=tassimo+capuchino',
-        'https://api.ozon.ru/composer-api.bx/page/json/v2?url=https://www.ozon.ru/category/produkty-pitaniya-9200/?text=tassimo+latte',
-    ]
+    links = []
+    for setting in settings:
+        links.append(setting['link'])
+    OzonApiItemsSpider.start_urls = links
+    OzonApiItemsSpider.custom_settings = {
+        'settings': settings
+    }
     process.crawl(OzonApiItemsSpider)
 
 
