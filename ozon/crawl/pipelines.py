@@ -1,7 +1,11 @@
 import sqlite3
 
+import telebot
 
-class SqliteDemoPipeline:
+from ozon.crawl.items import OzonItem
+
+
+class StoreInDatabasePipeline:
 
     def __init__(self):
         ## Create/Connect to database
@@ -17,24 +21,26 @@ class SqliteDemoPipeline:
              name TEXT NOT NULL,
              price INTEGER NOT NULL,
              link TEXT NOT NULL UNIQUE,
-             start_url TEXT NOT NULL
+             start_url TEXT NOT NULL,
+             last_touch DATE
          )
          """)
 
     def process_item(self, item, spider):
 
-        self.cur.execute("select price from ozon where skuId = " + str(item['skuId']))
+        self.cur.execute("SELECT price FROM items WHERE skuId = " + str(item['skuId']))
         result = self.cur.fetchone()
         ## If it is in DB, create log message
         if result:
             spider.logger.warn("Item already in database: %s" % item['skuId'])
             if int(result[0]) != int(item['price']):
                 self.cur.execute(
-                    "UPDATE items SET price =" + int(item['price']) + " WHERE skuId = " + str(item['skuId']))
+                    "UPDATE items SET last_touch = datetime('now') and price =" + int(
+                        item['price']) + " WHERE skuId = " + str(item['skuId']))
                 self.con.commit()
         else:
             self.cur.execute("""
-                     INSERT INTO items (skuId, name, price, link,  start_url) VALUES (?, ?, ?, ?, ?)
+                     INSERT INTO items (skuId, name, price, link, start_url, last_touch) VALUES (?, ?, ?, ?, ?, datetime('now'))
                  """,
                              (
                                  str(item['skuId']),
@@ -45,4 +51,21 @@ class SqliteDemoPipeline:
                              ))
 
             self.con.commit()
+        return item
+
+
+class NotificationPipeline():
+    def __init__(self):
+        print("tg notificator initialized")
+        self.bot = telebot.TeleBot("6788334491:AAEgFkwX-2BgwBA1cOOltrI1prRcP0iNeso")
+
+    def process_item(self, item, spider):
+        if type(item) is OzonItem and int(item['price']) <= 600:
+            spider.logger.info("found an item for good price")
+            msg_str = f"""
+            Товар: {item['name']}
+            Ссылка: https://www.ozon.ru{item['link']}
+            Цена: {item['price']}
+            """
+            self.bot.send_message(chat_id="181553450", text=msg_str)
         return item
